@@ -1,0 +1,64 @@
+#!/bin/bash
+
+if [ ${#} -ne 2 ]; then
+	echo "Arity Mismatch: expected 2 args, given ${#} arguments only..."
+	((status=1))
+elif [ ! -r ${1} -o ! -x ${1} ]; then
+	echo "Reading error: the given repo file ${1} does not exist, is not readable, or is not accessible..."
+	((status=2))
+elif [ ! -w ${2} ]; then
+	echo "Writing error: the given local file ${2} does not exist or is not writable..."
+	((status=3))
+else
+	repo=${1}
+	loc=${2}
+	((status=0))
+fi
+
+
+
+
+if [ ${status} -eq 0 ]; then
+	outputdefault=$(mktemp)
+	outputcustom=$(mktemp)
+
+	cd ${repo}
+	git pull > ${outputdefault}
+	cd ..
+
+	for entry in $(ls ${repo} | egrep "^a[[:digit:]]+$"); do
+		src=${repo}/${entry}
+		dest=${loc}/${entry}
+
+		if [ ! -e ${dest} ]; then
+			echo "NEW Assignment: ${entry}..." >> ${outputcustom}
+			mkdir ${dest}
+		elif [ $(diff -qr $src $dest | wc -l) -ne 0 ]; then
+			echo "Updating Assignment: ${entry}..." >> ${outputcustom}
+		else
+			continue
+		fi
+
+		for subentry in $(ls ${src}); do
+			if [ ! -e ${dest}/${subentry} ]; then
+				echo "  | New Entry: ${subentry}..." >> ${outputcustom}
+				cp -r ${src}/${subentry} ${dest}
+			fi
+		done
+	done
+
+	((lcdefault=$(cat ${outputdefault} | wc -l)))
+	((lccustom=$(cat ${outputcustom} | wc -l)))
+
+	if [ ${lcdefault} -ne 1 -o ${lccustom} -eq 0 ]; then
+		cat ${outputdefault}
+	fi
+	if [ ${lccustom} -ne 0 ]; then
+		cat ${outputcustom}
+	fi
+
+	rm ${outputdefault}
+	rm ${outputcustom}
+fi
+
+exit ${status}
