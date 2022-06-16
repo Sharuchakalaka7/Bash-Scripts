@@ -1,0 +1,30 @@
+#!/bin/bash
+
+if [ ${#} -eq 2 ]; then
+	suite=${1}
+	testname=${2}
+	((bound=40))
+	((status=0))
+elif [ ${#} -eq 3 ]; then
+	suite=${1}
+	testname=${2}
+	((bound=${3}))
+	((status=0))
+else
+	echo "Arity Mismatch: ${#} commands supplied - expected 2 or 3 arguments"
+	((status=1))
+fi
+
+if [ -e ${suite} -a ! -r ${suite} ]; then
+	echo "Read error: the suite file ${suite} does not exist or is not readable"
+	((status=1))
+fi
+
+
+
+if [ ${status} -eq 0 ]; then
+	echo -n "" > ${suite}
+	for (( i=1; i<=${bound}; i++ )) do
+		echo "${testname}${i}" >> ${suite}
+	done
+fi
