@@ -1,0 +1,22 @@
+#!/bin/bash
+
+usage() {
+	echo "Usage: ${0} {1: suitefile} {2: ./program}"
+	echo "Note: Arguments must be in the same format as produceOutputs and runSuite"
+}
+
+if [ ${#} -ne 2 ]; then
+	usage
+	exit 1
+fi
+
+tmpFile=$(mktemp)
+for fileName in $(cat ${1}); do
+	echo ""
+	echo "==================================================================="
+	echo "==                     TESTING ${fileName}"
+	echo "==================================================================="
+	echo ""
+	valgrind --track-origins=yes ${2} < "${fileName}.in" > ${tmpFile}
+done
+rm ${tmpFile}
