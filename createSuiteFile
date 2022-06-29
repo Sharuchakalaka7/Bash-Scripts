@@ -1,24 +1,36 @@
 #!/bin/bash
 
+usage() {
+	echo "Usage: createSuiteFile {1: suite file} {2: test name} [3: test name index bound]"
+}
+
 if [ ${#} -eq 2 ]; then
 	suite=${1}
 	testname=${2}
 	((bound=40))
-	((status=0))
 elif [ ${#} -eq 3 ]; then
 	suite=${1}
 	testname=${2}
 	((bound=${3}))
-	((status=0))
 else
-	echo "Arity Mismatch: ${#} commands supplied - expected 2 or 3 arguments"
-	((status=1))
+	usage
+	exit 1
 fi
 
-if [ -e ${suite} -a ! -r ${suite} ]; then
-	echo "Read error: the suite file ${suite} does not exist or is not readable"
-	((status=1))
+if [ -d ${suite} ]; then
+	usage
+	echo "Given \"suite file\" is a directory"
+	exit 1
+elif [ -e ${suite} -a ! -r ${suite} ]; then
+	usage
+	echo "Given suite file is not readable"
+	exit 1
+elif [ -e ${suite} -a ! -w ${suite} ]; then
+	usage
+	echo "Given suite file is not writable"
+	exit 1
 fi
+
 
 
 
