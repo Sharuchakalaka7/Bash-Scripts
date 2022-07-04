@@ -1,22 +1,93 @@
 #!/bin/bash
 
+# To print the file's usage
 usage() {
 	echo "Usage: ${0} {1: suitefile} {2: ./program}"
-	echo "Note: Arguments must be in the same format as produceOutputs and runSuite"
+	echo "Exit Status Interpretations:"
+	echo "(1): Command arity mismatch."
+	echo "(2): Arguments must be in the same format as produceOutputs"
+	echo "     and runSuite."
+	echo "(3): the runSuite command does not exist or is not executable"
+	echo "(4): Invoking the runSuite command with the given args should"
+	echo "     not produce any errors - check for syntax/semantic errors."
 }
 
+# Setup the appropriate command that needs to be
+# executed for the running the test
+getTestCommand() {
+	# Input file redirection
+	if [ -r "${testName}.in" ]; then
+		inputRedir="< ${testName}.in "
+	else
+		inputRedir=""
+	fi
+
+	# Arguments file inclusion
+	if [ -r "${testName}.args" ]; then
+		argsSupplied="$(cat ${testName}.args) "
+	else
+		argsSupplied=""
+	fi
+
+	# Constructing the test's command
+	# Note: The ${1} function arg is the program executable (${2} in main)
+	# Access ${testCommand} directly from main
+	testCommand="${1} ${argsSupplied}${inputRedir}> /dev/null"
+}
+
+# To print the valgrind output for a failing test
+printOutput() {
+	if [ $(cat ${outFile} | wc -l) -ne ${noErrorLength} ]; then
+		echo ""
+		echo "==================================================================="
+		echo "==                     TESTING ${testName}"
+		echo "==================================================================="
+		echo ""
+		cat ${outFile}
+	fi
+}
+
+
+
+
+#################
+## MAIN SCRIPT ##
+#################
+
+# Verifying command line arguments first
 if [ ${#} -ne 2 ]; then
 	usage
 	exit 1
+elif [ ! -r ${1} ]; then
+	usage
+	exit 2
+elif [ ! -x ${2} ]; then
+	usage
+	exit 2
 fi
 
-tmpFile=$(mktemp)
-for fileName in $(cat ${1}); do
-	echo ""
-	echo "==================================================================="
-	echo "==                     TESTING ${fileName}"
-	echo "==================================================================="
-	echo ""
-	valgrind --track-origins=yes ${2} < "${fileName}.in" > ${tmpFile}
+runSuite ${1} ${2} > /dev/null
+if [ ${?} -ne 0 ]; then
+	usage
+	exit 4
+fi
+
+
+# ${1} - suite file
+# ${2} - program to run
+# - Output file to temporarily store the valgrind outputs
+# - The number of lines for a errorless output is 14
+# - Tags to use when invoking valgrind
+outFile=$(mktemp)
+noErrorLength=15
+valgrindTags="--track-origins=yes --leak-check=full --log-file=${outFile}"
+
+
+# Check each given testfile entry in the suite file for memory errors
+for testName in $(cat ${1}); do
+	getTestCommand ${2}
+	eval valgrind ${valgrindTags} ${testCommand}
+	printOutput
 done
-rm ${tmpFile}
+
+rm ${outFile}
