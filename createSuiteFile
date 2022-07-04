@@ -32,11 +32,7 @@ elif [ -e ${suite} -a ! -w ${suite} ]; then
 fi
 
 
-
-
-if [ ${status} -eq 0 ]; then
-	echo -n "" > ${suite}
-	for (( i=1; i<=${bound}; i++ )) do
-		echo "${testname}${i}" >> ${suite}
-	done
-fi
+echo -n "" > ${suite}
+for (( i=1; i<=${bound}; ++i )) do
+	echo "${testname}${i}" >> ${suite}
+done
